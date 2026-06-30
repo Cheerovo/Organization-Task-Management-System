@@ -807,7 +807,7 @@ body { font:11px/1.5 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif; b
 .ws-section { background:var(--card); border-radius:var(--radius); box-shadow:0 1px 3px rgba(0,0,0,.03); margin-bottom:14px; overflow:hidden; }
 .ws-section-hd { padding:14px 20px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #f5f3f1; cursor:pointer; user-select:none; }
 .ws-section-hd:hover { background:#fdfcfc; }
-.ws-section-hd h3 { font-size:13px; font-weight:500; color:var(--text); margin:0; display:flex; align-items:center; gap:6px; }
+.ws-section-hd h3 { font-size:11px; font-weight:500; color:var(--text); margin:0; display:flex; align-items:center; gap:6px; }
 .ws-section-hd h3 .dot { width:6px; height:6px; border-radius:50%; display:inline-block; }
 .ws-section-hd .ws-count { font-size:9px; color:var(--text2); }
 .ws-toggle { font-size:10px; color:var(--text2); transition:transform .15s; display:inline-block; width:14px; text-align:center; line-height:1; }
@@ -863,6 +863,19 @@ body { font:11px/1.5 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif; b
 .ws-kpi-row .kpi-val.good { color:#059669; }
 .ws-kpi-row .kpi-val.warn { color:var(--danger); }
 .ws-kpi-row .kpi-bu { font-size:8px; color:var(--text2); flex-shrink:0; }
+.ws-progress-overview { padding:16px 20px; }
+.ws-progress-bar-wrap { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+.ws-progress-bar { flex:1; height:8px; background:#f0eeed; border-radius:4px; overflow:hidden; }
+.ws-progress-bar-fill { height:100%; border-radius:4px; transition:width .5s ease; }
+.ws-progress-bar-fill.good { background:linear-gradient(90deg,#059669,#34d399); }
+.ws-progress-bar-fill.warn { background:linear-gradient(90deg,#f59e0b,#fbbf24); }
+.ws-progress-bar-fill.low { background:linear-gradient(90deg,#ef4444,#f87171); }
+.ws-progress-pct { font-size:18px; font-weight:600; color:var(--text); flex-shrink:0; }
+.ws-progress-cards { display:flex; gap:8px; }
+.ws-progress-card { flex:1; text-align:center; padding:10px 6px; background:#faf8f7; border-radius:8px; }
+.ws-progress-card-num { font-size:15px; font-weight:600; color:var(--text); }
+.ws-progress-card-num span { font-size:12px; color:var(--text2); font-weight:400; }
+.ws-progress-card-lbl { font-size:8px; color:var(--text2); margin-top:2px; }
 .ws-empty { text-align:center; padding:32px 20px; color:var(--text2); font-size:10px; }
 .ws-empty .icon { font-size:28px; margin-bottom:8px; opacity:.3; }
 .ws-source-hd { font-size:8px; font-weight:500; color:var(--text2); padding:8px 20px 2px; text-transform:uppercase; letter-spacing:.5px; background:#fdfcfc; }
@@ -1197,6 +1210,10 @@ body { font:11px/1.5 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif; b
             <div class="ws-stat-val green" id="wsStatKpi">0</div>
             <div class="ws-stat-lbl">我的指标</div>
           </div>
+          <div class="ws-stat-item" onclick="document.getElementById('wsProgressSection').scrollIntoView({behavior:'smooth'})">
+            <div class="ws-stat-val blue" id="wsStatProgress">0%</div>
+            <div class="ws-stat-lbl">工作进度</div>
+          </div>
         </div>
         <div class="ws-section" id="wsOkrSection">
           <div class="ws-section-hd" onclick="this.parentElement.classList.toggle('collapsed')"><h3><span class="ws-toggle">▾</span><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--primary);flex-shrink:0"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg> 我的目标</h3><span class="ws-count" id="wsOkrCount">0项</span></div>
@@ -1209,6 +1226,10 @@ body { font:11px/1.5 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif; b
         <div class="ws-section" id="wsKpiSection">
           <div class="ws-section-hd" onclick="this.parentElement.classList.toggle('collapsed')"><h3><span class="ws-toggle">▾</span><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#059669;flex-shrink:0"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> 我的指标</h3><span class="ws-count" id="wsKpiCount">0项</span></div>
           <div class="ws-section-body" id="wsKpiList"></div>
+        </div>
+        <div class="ws-section" id="wsProgressSection">
+          <div class="ws-section-hd" onclick="this.parentElement.classList.toggle('collapsed')"><h3><span class="ws-toggle">▾</span><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--primary);flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="6" x2="12" y2="12"/><line x1="12" y1="12" x2="16" y2="14"/></svg> 工作进度</h3><span class="ws-count" id="wsProgressCount">-</span></div>
+          <div class="ws-section-body" id="wsProgressList"></div>
         </div>
       </div>
 
@@ -1338,17 +1359,17 @@ function getRoleLabel(u){if(!u)return'普通用户';var un=getUsername(u);if(un&
 function canAccessAdminSettings(u){if(!u)return false;var un=getUsername(u);return un&&isGlobalAdmin(un);}
 const ADMINS = ['杜宪','Jenny'];
 function defaultUsers(){return{
-  '杜宪':{pw:'duxian123',role:'admin',name:'杜宪',modules:['org','okr','kpi','report','meeting']},
-  'Jenny':{pw:'jenny123456',role:'admin',name:'张毅',modules:['org','okr','kpi','report','meeting']},
-  '汪顺':{pw:'123456',role:'user',name:'汪顺'},
-  '王倩':{pw:'123456',role:'user',name:'王倩'},
-  '邵吴慧':{pw:'123456',role:'user',name:'邵吴慧'},
-  '黄一萧':{pw:'123456',role:'user',name:'黄一萧'},
-  '蔡心宇':{pw:'123456',role:'user',name:'蔡心宇'},
-  '芦智蔚':{pw:'123456',role:'user',name:'芦智蔚'},
-  '黄欢欢':{pw:'123456',role:'user',name:'黄欢欢'},
-  '王妤杨':{pw:'123456',role:'user',name:'王妤杨'},
-  '王力':{pw:'123456',role:'user',name:'王力'}
+  '杜宪':{pw:'32508000',role:'admin',name:'杜宪',modules:['org','okr','kpi','report','meeting']},
+  'Jenny':{pw:'32508000',role:'admin',name:'张毅',modules:['org','okr','kpi','report','meeting']},
+  '汪顺':{pw:'123123',role:'user',name:'汪顺'},
+  '王倩':{pw:'123123',role:'user',name:'王倩'},
+  '邵吴慧':{pw:'123123',role:'user',name:'邵吴慧'},
+  '黄一萧':{pw:'123123',role:'user',name:'黄一萧'},
+  '蔡心宇':{pw:'123123',role:'user',name:'蔡心宇'},
+  '芦智蔚':{pw:'123123',role:'user',name:'芦智蔚'},
+  '黄欢欢':{pw:'123123',role:'user',name:'黄欢欢'},
+  '王妤杨':{pw:'123123',role:'user',name:'王妤杨'},
+  '王力':{pw:'123123',role:'user',name:'王力'}
 };}
 function loadUsers(){
   try{
@@ -1365,7 +1386,7 @@ function loadUsers(){
     var emps = JSON.parse(localStorage.okr_employees)||[];
     emps.forEach(function(e){
       if(e.name && !base[e.name]){
-        base[e.name] = {pw:'123456', role:'user', name:e.name};
+        base[e.name] = {pw:'123123', role:'user', name:e.name};
       }
     });
   }catch(e){}
@@ -2556,8 +2577,17 @@ function switchOkrView(view) {
 // ===== Notify Panel (bell dropdown) =====
 function toggleNotify(){
   const d=document.getElementById('notifyDrop');
-  if(d.classList.contains('show')){d.classList.remove('show');return;}
+  if(d.classList.contains('show')){d.classList.remove('show');clearSeenNudgeReplies();return;}
   renderNotify(); d.classList.add('show');
+}
+function clearSeenNudgeReplies(){
+  var changed=false;
+  okrs.forEach(function(o){
+    if(o.nudgeReply&&o.nudgeReply.by===currentUser){
+      delete o.nudgeReply;changed=true;
+    }
+  });
+  if(changed){saveOKRs(okrs);updateBellBadge();}
 }
 const NI={okr:'<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/></svg>',kr:'<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="20" x2="4" y2="10"/><line x1="10" y1="20" x2="10" y2="6"/><line x1="16" y1="20" x2="16" y2="14"/></svg>',meeting:'<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>',task:'<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>',kpi:'<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" transform="rotate(45 12 12)"/></svg>',report:'<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',warn:'<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',approve:'<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>',overdue:'<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',rpt:'<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>',nudge:'<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>'};
 function renderNotify(){
@@ -2638,7 +2668,7 @@ function renderNotify(){
     if(!hasDingLog)html+='<div class="nd-empty">暂无待办事项</div>';
   }else{
     html+='<div class="nd-section-hd">待办</div>';
-    html+=items.map(i=>{let click;if(i.type==='task'){click=`event.stopPropagation();switchTab('meeting');setTimeout(()=>document.querySelector('.meeting-card[data-id=\\'${i.mid}\\']')?.scrollIntoView({behavior:'smooth'}),200)`;}else if(i.type==='rptDue'||i.type==='rptNudge'){click=`event.stopPropagation();switchTab('report');setTimeout(()=>{const el2=document.querySelector('.report-card[data-id=\\'${i.rid}\\']')||document.querySelector('.report-card[data-group]');if(el2){el2.classList.add('open');el2.scrollIntoView({behavior:'smooth'})}},200)`;}else{click=`event.stopPropagation();switchTab('okr');const c=document.querySelector('.okr-card[data-id=\\'${i.oid}\\']');if(c){c.classList.add('open');c.scrollIntoView({behavior:'smooth'})}`;}let subStyle=(i.type==='deadline'||i.type==='overdue'||i.type==='approval'||i.type==='nudge'||i.type==='nudgeReply'||i.type==='rptNudge')?' style="color:var(--danger)"':'';return `<div class="nd-item" onclick="${click};document.getElementById('notifyDrop').classList.remove('show');decBellBadge()"><span class="nd-icon">${i.icon}</span><div class="nd-text"><div class="nd-title">${i.title}</div><div class="nd-sub"${subStyle}>${i.sub}</div></div><div class="nd-meta">${i.meta}</div></div>`;}).join('');
+    html+=items.map(i=>{let click;if(i.type==='task'){click=`event.stopPropagation();switchTab('meeting');setTimeout(()=>document.querySelector('.meeting-card[data-id=\\'${i.mid}\\']')?.scrollIntoView({behavior:'smooth'}),200)`;}else if(i.type==='rptDue'||i.type==='rptNudge'){click=`event.stopPropagation();switchTab('report');setTimeout(()=>{const el2=document.querySelector('.report-card[data-id=\\'${i.rid}\\']')||document.querySelector('.report-card[data-group]');if(el2){el2.classList.add('open');el2.scrollIntoView({behavior:'smooth'})}},200)`;}else if(i.type==='approval'){click=`event.stopPropagation();var af=document.getElementById('approvalFilter');if(af)af.value='draft';var sf=document.getElementById('statusFilter');if(sf)sf.value='all';switchTab('okr');setTimeout(()=>{const c=document.querySelector('.okr-card[data-id=\\'${i.oid}\\']');if(c){c.classList.add('open');c.scrollIntoView({behavior:'smooth'})}},300)`;}else if(i.type==='nudgeReply'){click=`event.stopPropagation();var o2=okrs.find(function(x){return x.id==='${i.oid}';});if(o2)delete o2.nudgeReply;saveOKRs(okrs);switchTab('okr');setTimeout(()=>{const c=document.querySelector('.okr-card[data-id=\\'${i.oid}\\']');if(c){c.classList.add('open');c.scrollIntoView({behavior:'smooth'})}},300)`;}else if(i.type==='checkin'){click=`event.stopPropagation();switchTab('workspace');setTimeout(()=>{document.getElementById('wsCheckinSection').scrollIntoView({behavior:'smooth'})},200)`;}else{click=`event.stopPropagation();switchTab('okr');setTimeout(()=>{const c=document.querySelector('.okr-card[data-id=\\'${i.oid}\\']');if(c){c.classList.add('open');c.scrollIntoView({behavior:'smooth'})}},300)`;}let subStyle=(i.type==='deadline'||i.type==='overdue'||i.type==='approval'||i.type==='nudge'||i.type==='nudgeReply'||i.type==='rptNudge')?' style="color:var(--danger)"':'';return `<div class="nd-item" onclick="${click};document.getElementById('notifyDrop').classList.remove('show');decBellBadge()"><span class="nd-icon">${i.icon}</span><div class="nd-text"><div class="nd-title">${i.title}</div><div class="nd-sub"${subStyle}>${i.sub}</div></div><div class="nd-meta">${i.meta}</div></div>`;}).join('');
   }
   if(items.length||hasDingLog)html+='<div class="nd-footer" onclick="event.stopPropagation();switchTab(\'workspace\');document.getElementById(\'notifyDrop\').classList.remove(\'show\')">在个人工作台查看全部 →</div>';
   el.innerHTML=html;
@@ -4815,7 +4845,7 @@ function migrateOldOrgData(){
 migrateOldOrgData();
 
 // --- Default data (versioned — bump DATA_VER to force refresh) ---
-const DATA_VER = 'v3';
+const DATA_VER = 'v4';
 const storedVer = localStorage.okr_data_version;
 if(!deptList.length || storedVer !== DATA_VER){
   deptList = ['董事会','人力资源BU','客户服务部','社保部','天津事业部','北京事业部','深圳事业部','园区商办BU','AB区商办&H20','C区商办','园区公寓BU','自营公寓','公寓维修部','餐厅','悦樘管理公寓','园区物业BU','物业维修部','物业管理部','物业安保部','物业保洁部','职能后台','财务部（1）','财务部（2）','账务部（1）','账务部（2）','法务部','香港办','总裁办'];
@@ -4930,16 +4960,16 @@ if(!empList.length || storedVer !== DATA_VER){
     {id:'e99',name:'邵吴慧',bu:'职能后台',department:'账务部（2）',reportsTo:'张毅',position:'账务主管',rank:'II',hireDate:'',phone:''},
     {id:'e100',name:'陈锦',bu:'职能后台',department:'账务部（2）',reportsTo:'邵吴慧',position:'账务助理',rank:'管培',hireDate:'',phone:''},
     {id:'e101',name:'陈双杰',bu:'职能后台',department:'账务部（2）',reportsTo:'邵吴慧',position:'账务助理',rank:'管培',hireDate:'',phone:''},
-    {id:'e102',name:'杜宪',bu:'职能后台',department:'法务部',reportsTo:'张毅',position:'法务经理',rank:'III',hireDate:'',phone:''},
-    {id:'e103',name:'赵柳文',bu:'职能后台',department:'法务部',reportsTo:'杜宪',position:'法务助理',rank:'管培',hireDate:'',phone:''},
-    {id:'e104',name:'安子玥',bu:'职能后台',department:'法务部',reportsTo:'杜宪',position:'法务助理',rank:'管培',hireDate:'',phone:''},
+    {id:'e102',name:'杜宪',bu:'职能后台',department:'总裁办',reportsTo:'张毅',position:'总裁秘书',rank:'II',hireDate:'',phone:''},
+    {id:'e103',name:'赵柳文',bu:'职能后台',department:'法务部',reportsTo:'TBH',position:'法务助理',rank:'管培',hireDate:'',phone:''},
+    {id:'e104',name:'安子玥',bu:'职能后台',department:'法务部',reportsTo:'TBH',position:'法务助理',rank:'管培',hireDate:'',phone:''},
     {id:'e105',name:'李佳',bu:'职能后台',department:'香港办',reportsTo:'王倩',position:'账务专员',rank:'I',hireDate:'',phone:''},
     {id:'e106',name:'Yvonne Lai',bu:'职能后台',department:'香港办',reportsTo:'王倩',position:'境外财务',rank:'外部',hireDate:'',phone:''},
-    {id:'e107',name:'黄燕婷',bu:'职能后台',department:'总裁办',reportsTo:'张毅',position:'人事专员',rank:'I',hireDate:'',phone:''},
-    {id:'e108',name:'任梦超',bu:'职能后台',department:'总裁办',reportsTo:'张毅',position:'CS管培生（北美远程）',rank:'管培',hireDate:'',phone:''},
-    {id:'e109',name:'陈圆',bu:'职能后台',department:'总裁办',reportsTo:'张毅',position:'CS管培生',rank:'管培',hireDate:'',phone:''},
-    {id:'e110',name:'林水桃',bu:'职能后台',department:'总裁办',reportsTo:'张毅',position:'驾驶员',rank:'I',hireDate:'',phone:''},
-    {id:'e111',name:'季文菊',bu:'职能后台',department:'总裁办',reportsTo:'张毅',position:'管家保洁',rank:'I',hireDate:'',phone:''}
+    {id:'e107',name:'黄燕婷',bu:'职能后台',department:'总裁办',reportsTo:'杜宪',position:'人事专员',rank:'I',hireDate:'',phone:''},
+    {id:'e108',name:'任梦超',bu:'职能后台',department:'总裁办',reportsTo:'杜宪',position:'CS管培生（北美远程）',rank:'管培',hireDate:'',phone:''},
+    {id:'e109',name:'陈圆',bu:'职能后台',department:'总裁办',reportsTo:'杜宪',position:'CS管培生',rank:'管培',hireDate:'',phone:''},
+    {id:'e110',name:'林水桃',bu:'职能后台',department:'香港办',reportsTo:'王倩',position:'驾驶员',rank:'I',hireDate:'',phone:''},
+    {id:'e111',name:'季文菊',bu:'职能后台',department:'香港办',reportsTo:'王倩',position:'管家保洁',rank:'I',hireDate:'',phone:''}
   ];
   saveEmployees(empList);
   localStorage.okr_data_version = DATA_VER;
@@ -5511,17 +5541,21 @@ function renderOrgChart() {
           { name:'账务部（2）', head:'邵吴慧', headRole:'账务主管', headLevel:'Ⅱ', staff:[
             {n:'陈锦',r:'账务助理(管培生)',l:'—'},{n:'陈双杰',r:'账务助理(管培生)',l:'—'}
           ]},
-          { name:'法务部', head:'杜宪', headRole:'法务经理', headLevel:'Ⅲ', staff:[
+          { name:'法务部', head:'TBH', headRole:'法务经理', headLevel:'Ⅲ', staff:[
             {n:'赵柳文',r:'法务助理(管培生)',l:'—'},{n:'安子玥',r:'法务助理(管培生)',l:'—'}
           ]},
-          { name:'香港办', head:'王倩(兼)', headRole:'负责人', headLevel:'Ⅴ', staff:[
-            {n:'李佳',r:'账务专员',l:'Ⅰ'},{n:'Yvonne Lai',r:'境外财务(外部)',l:'外部'}
+          { name:'香港办', head:'王倩(兼)', headRole:'负责人', headLevel:'Ⅴ', subdepts:[
+            { name:'香港办', staff:[
+              {n:'李佳',r:'账务专员',l:'Ⅰ'},{n:'Yvonne Lai',r:'境外财务(外部)',l:'外部'}
+            ]},
+            { name:'家庭办', staff:[
+              {n:'林水桃',r:'驾驶员',l:'Ⅰ'},{n:'季文菊',r:'管家保洁',l:'Ⅰ'}
+            ]}
           ]},
-          { name:'总裁办', head:null, headRole:null, headLevel:null, reportTo:'张毅',
+          { name:'总裁办', head:'杜宪', headRole:'总裁秘书', headLevel:'Ⅱ',
             subdepts:[
               { name:'人事', staff:[{n:'黄燕婷',r:'人事专员',l:'Ⅰ'}]},
-              { name:'管培生团队', staff:[{n:'任梦超',r:'CS管培生(北美远程)',l:'—'},{n:'陈圆',r:'CS管培生',l:'—'}]},
-              { name:'Jenny家庭', staff:[{n:'林水桃',r:'驾驶员',l:'Ⅰ'},{n:'季文菊',r:'管家保洁',l:'Ⅰ'}]}
+              { name:'管培生团队', staff:[{n:'任梦超',r:'CS管培生(北美远程)',l:'—'},{n:'陈圆',r:'CS管培生',l:'—'}]}
             ]}
         ]
       }
@@ -5686,7 +5720,7 @@ function renderOrgChart() {
   // Attachment section
   html += '<div class="oc-attach">';
   html += '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">';
-  html += '<div style="display:flex;align-items:center;gap:12px;"><span style="font-size:12px;font-weight:500;color:var(--text);">附件资料</span><span style="font-size:9px;color:var(--text2);">数据来源：2026-06-22 组织架构图</span></div>';
+  html += '<div style="display:flex;align-items:center;gap:12px;"><span style="font-size:12px;font-weight:500;color:var(--text);">附件资料</span></div>';
   html += '<label style="cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:6px 14px;background:var(--primary);color:#fff;border-radius:6px;font-size:10px;transition:opacity .2s;" onmouseenter="this.style.opacity=\'0.85\'" onmouseleave="this.style.opacity=\'1\'">';
   html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>';
   html += '上传附件';
@@ -5870,7 +5904,6 @@ function renderOrgFuncView() {
 
   // Footer
   html += '<div class="func-footer">';
-  html += '数据来源：集团后台职能分工.xlsx · 大后台职能分工表（公示版本）<br/>';
   html += '财务部23家 + 账务部23家 · 大财务部4大模块 · 集团大后台3大职能 · 人力资源管理5年规划3年计划';
   html += '</div>';
 
@@ -5959,7 +5992,6 @@ function renderBUFuncView() {
 
   // Footer
   html += '<div class="func-footer">';
-  html += '数据来源：集团后台职能分工.xlsx · BU职能分工表<br/>';
   html += '共4个业务单元';
   html += '</div>';
 
@@ -6059,6 +6091,7 @@ function renderWorkspace(){
     document.getElementById('wsStatDing').textContent='-';
     document.getElementById('wsStatOkr').textContent='-';
     document.getElementById('wsStatKpi').textContent='-';
+    document.getElementById('wsStatProgress').textContent='-';
     document.getElementById('wsOvCompleted').textContent='-';
     document.getElementById('wsOvProgress').textContent='-';
     document.getElementById('wsOvOverdue').textContent='-';
@@ -6072,6 +6105,8 @@ function renderWorkspace(){
     document.getElementById('wsDingLogList').innerHTML='';
     document.getElementById('wsOkrList').innerHTML='';
     document.getElementById('wsKpiList').innerHTML='';
+    document.getElementById('wsProgressList').innerHTML='';
+    document.getElementById('wsProgressCount').textContent='-';
     document.getElementById('wsApprovalCount').textContent='0项';
     document.getElementById('wsCheckinCount').textContent='0项';
     document.getElementById('wsPushCount').textContent='0项';
@@ -6188,6 +6223,16 @@ function renderWorkspace(){
   const myKpis=canViewKpiModule?kpis.filter(k=>getOwners(k.owner).includes(cu)||true):kpis.filter(k=>getOwners(k.owner).includes(cu));
   document.getElementById('wsStatOkr').textContent=myOkrs.length;
   document.getElementById('wsStatKpi').textContent=myKpis.length;
+  // Overall work progress %
+  try{
+    var totalKRs=0, totalKRCur=0; myOkrs.forEach(function(o){o.krs.forEach(function(k){totalKRs+=k.target||0;totalKRCur+=k.cur||0;});});
+    var totalKPI=0,totalKPICur=0; myKpis.forEach(function(k){totalKPI+=k.target||0;totalKPICur+=k.cur||0;});
+    var overallPct=0,overallCount=0;
+    if(totalKRs>0){overallPct+=Math.round(totalKRCur/totalKRs*100);overallCount++;}
+    if(totalKPI>0){overallPct+=Math.round(totalKPICur/totalKPI*100);overallCount++;}
+    overallPct=overallCount?Math.round(overallPct/overallCount):0;
+    document.getElementById('wsStatProgress').textContent=overallPct+'%';
+  }catch(e){var overallPct=0;}
 
   // ====== Render 待审批 ======
   const apEl=document.getElementById('wsApprovalList');
@@ -6327,6 +6372,27 @@ function renderWorkspace(){
       </div>`;
     }).join('');
   }
+
+  // ====== Render 工作进度 ======
+  try{
+    var pgEl=document.getElementById('wsProgressList');
+    var pgCnt=document.getElementById('wsProgressCount');
+    if(!pgEl||!pgCnt){return;}
+    var okrDone=myOkrs.filter(function(o){return o.status==='completed';}).length;
+    var okrPct=myOkrs.length?Math.round(okrDone/myOkrs.length*100):0;
+    var kpiAvg=0; try{ kpiAvg=myKpis.length?Math.round(myKpis.reduce(function(s,k){return s+Math.round((k.cur||0)/(k.target||1)*100);},0)/myKpis.length):0; }catch(e){}
+    pgCnt.textContent=overallPct+'%';
+    var cls=overallPct>=70?'good':overallPct>=40?'warn':'low';
+    pgEl.innerHTML=
+      '<div class="ws-progress-overview">'+
+        '<div class="ws-progress-bar-wrap"><div class="ws-progress-bar"><div class="ws-progress-bar-fill '+cls+'" style="width:'+overallPct+'%"></div></div><div class="ws-progress-pct">'+overallPct+'%</div></div>'+
+        '<div class="ws-progress-cards">'+
+          '<div class="ws-progress-card"><div class="ws-progress-card-num">'+okrDone+'/<span>'+myOkrs.length+'</span></div><div class="ws-progress-card-lbl">OKR完成</div></div>'+
+          '<div class="ws-progress-card"><div class="ws-progress-card-num">'+Math.round(totalKRCur>0?totalKRCur/(totalKRs||1)*100:0)+'%</div><div class="ws-progress-card-lbl">KR进度</div></div>'+
+          '<div class="ws-progress-card"><div class="ws-progress-card-num">'+kpiAvg+'%</div><div class="ws-progress-card-lbl">KPI达标率</div></div>'+
+        '</div>'+
+      '</div>';
+  }catch(e){}
 
 }
 </script>
