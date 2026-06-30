@@ -1346,11 +1346,107 @@ body { font:11px/1.5 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif; b
 <div class="modal-overlay" id="modalOverlay"><div class="modal" id="modal"></div></div>
 
 <script>
+// ===== API Client =====
+const API_BASE = (() => {
+  if (window.location.port === '3456') return '';
+  return 'http://' + window.location.hostname + ':3456';
+})();
+let authToken = (function(){ try { return sessionStorage.getItem('otms_token'); } catch(e) { return null; } })();
+let apiOnline = false;
+
+async function apiFetch(url, options = {}) {
+  if (!options.headers) options.headers = {};
+  if (authToken) options.headers['Authorization'] = 'Bearer ' + authToken;
+  try {
+    const res = await fetch(API_BASE + url, options);
+    if (res.status === 401) { authToken = null; safeSessionRemove('otms_token'); return null; }
+    if (!res.ok) return null;
+    apiOnline = true;
+    return await res.json();
+  } catch (e) { apiOnline = false; return null; }
+}
+
+async function apiLogin(username, password) {
+  const res = await apiFetch('/api/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password })
+  });
+  if (res && res.token) {
+    authToken = res.token;
+    safeSessionSet('otms_token', res.token);
+    apiOnline = true;
+    return res;
+  }
+  return null;
+}
+
+async function syncFromServer() {
+  if (!authToken) return false;
+  const data = await apiFetch('/api/sync/all');
+  if (!data) return false;
+  const keys = ['okr_users','okr_data','okr_version','kpi_data','rpt_data','rpt_version',
+    'meeting_data','okr_employees','okr_depts','okr_permissions','okr_attendance',
+    'nudge_log','rpt_group_subs'];
+  // Merge users: preserve local passwords (server returns empty pw)
+  if (data.okr_users) {
+    const localUsers = JSON.parse(localStorage.okr_users || '{}');
+    const merged = {};
+    for (const [k, v] of Object.entries(data.okr_users)) {
+      merged[k] = v;
+      if (localUsers[k] && localUsers[k].pw) merged[k].pw = localUsers[k].pw;
+    }
+    localStorage.setItem('okr_users', JSON.stringify(merged));
+  }
+  const nonUserKeys = ['okr_data','okr_version','kpi_data','rpt_data','rpt_version',
+    'meeting_data','okr_employees','okr_depts','okr_permissions','okr_attendance',
+    'nudge_log','rpt_group_subs'];
+  for (const k of nonUserKeys) {
+    if (data[k] !== undefined) {
+      localStorage.setItem(k, typeof data[k] === 'string' ? data[k] : JSON.stringify(data[k]));
+    }
+  }
+  users = loadUsers(); okrs = loadOKRs(); kpis = loadKPIs();
+  reports = loadReports(); meetings = loadMeetings();
+  return true;
+}
+
+let _syncTimer = null;
+function debouncedSyncToServer() {
+  if (!authToken) return;
+  clearTimeout(_syncTimer);
+  _syncTimer = setTimeout(() => syncToServer_internal(), 2000);
+}
+
+async function syncToServer_internal() {
+  if (!authToken) return;
+  const payload = {
+    okr_users: JSON.parse(localStorage.okr_users || '{}'),
+    okr_data: JSON.parse(localStorage.okr_data || '[]'),
+    okr_version: localStorage.okr_version || '7',
+    kpi_data: JSON.parse(localStorage.kpi_data || '[]'),
+    rpt_data: JSON.parse(localStorage.rpt_data || '[]'),
+    rpt_version: localStorage.rpt_version || '6',
+    meeting_data: JSON.parse(localStorage.meeting_data || '[]'),
+    okr_employees: JSON.parse(localStorage.okr_employees || '[]'),
+    okr_depts: JSON.parse(localStorage.okr_depts || '[]'),
+    okr_permissions: JSON.parse(localStorage.okr_permissions || '{}'),
+    okr_attendance: JSON.parse(localStorage.getItem('okr_attendance') || '{}'),
+    nudge_log: JSON.parse(localStorage.nudge_log || '[]'),
+    rpt_group_subs: JSON.parse(localStorage.rpt_group_subs || '{}')
+  };
+  await apiFetch('/api/sync/all', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+}
+
 // ===== User & Auth =====
 const MODULES = ['org','okr','kpi','report','meeting'];
 const MOD_LABELS = {org:'组织管理',okr:'OKR目标',kpi:'KPI指标',report:'报表提交',meeting:'例会管理'};
 function loadPerms(){try{var p=JSON.parse(localStorage.okr_permissions);if(!p||typeof p!=='object')p={};MODULES.forEach(function(m){if(!p[m])p[m]={view:[],edit:[]};if(!p[m].view)p[m].view=[];if(!p[m].edit)p[m].edit=[];});return p;}catch(e){var p2={};MODULES.forEach(function(m){p2[m]={view:[],edit:[]};});return p2;}}
-function savePerms(p){try{localStorage.okr_permissions=JSON.stringify(p);}catch(e){}}
+function savePerms(p){try{localStorage.okr_permissions=JSON.stringify(p);debouncedSyncToServer();}catch(e){}}
 function isGlobalAdmin(user){var u=users[user];return u&&u.role==='admin';}
 function canEditModule(user,mod){if(!user||!mod)return false;if(isGlobalAdmin(user))return true;var p=loadPerms();return p[mod]&&p[mod].edit&&p[mod].edit.includes(user);}
 function canViewModule(user,mod){if(!user||!mod)return false;if(canEditModule(user,mod))return true;var p=loadPerms();return p[mod]&&p[mod].view&&p[mod].view.includes(user);}
@@ -1392,7 +1488,7 @@ function loadUsers(){
   }catch(e){}
   return base;
 }
-function saveUsers(d){try{localStorage.okr_users=JSON.stringify(d)}catch(e){}}
+function saveUsers(d){try{localStorage.okr_users=JSON.stringify(d);debouncedSyncToServer();}catch(e){}}
 function safeSessionGet(k){try{return sessionStorage.getItem(k)}catch(e){return null}}
 function safeSessionSet(k,v){try{sessionStorage.setItem(k,v)}catch(e){}}
 function safeSessionRemove(k){try{sessionStorage.removeItem(k)}catch(e){}}
@@ -1417,6 +1513,16 @@ function doLogin(){
     safeSessionSet('okr_session',u);
     document.getElementById('loginOverlay').style.display='none';
     renderSidebarUser();
+    // Try API login and sync in background
+    apiLogin(u, p).then(function(apiRes) {
+      if (apiRes) {
+        console.log('OTMS: API login successful, syncing from server...');
+        return syncFromServer();
+      }
+    }).then(function(synced) {
+      if (synced) { console.log('OTMS: Data synced from server.'); }
+      else { console.log('OTMS: Using offline mode (localStorage).'); }
+    }).catch(function(e) { console.log('OTMS: API unavailable, offline mode.'); });
     if(pendingTab){ switchTab(pendingTab); }
     else initApp();
   }catch(e){
@@ -1812,10 +1918,10 @@ function defaultOKRs() { const n=Date.now(); return [
 ];}
 
 function loadNudgeLog(){try{return JSON.parse(localStorage.nudge_log)||[]}catch(e){return[]}}
-function saveNudgeLog(d){try{localStorage.nudge_log=JSON.stringify(d.slice(-50))}catch(e){}}
+function saveNudgeLog(d){try{localStorage.nudge_log=JSON.stringify(d.slice(-50));debouncedSyncToServer();}catch(e){}}
 let nudgeLog=loadNudgeLog();
 function loadOKRs(){try{const ver=localStorage.okr_version;if(ver==='7'){try{return JSON.parse(localStorage.okr_data)||defaultOKRs();}catch(e){return defaultOKRs();}}}catch(e){}return defaultOKRs();}
-function saveOKRs(d){try{localStorage.okr_data=JSON.stringify(d);localStorage.okr_version='7'}catch(e){alert('存储空间不足，请清理旧数据或导出备份后重试。\n错误：'+e.message);throw e}}
+function saveOKRs(d){try{localStorage.okr_data=JSON.stringify(d);localStorage.okr_version='7';debouncedSyncToServer();}catch(e){alert('存储空间不足，请清理旧数据或导出备份后重试。\n错误：'+e.message);throw e}}
 let okrs = loadOKRs();
 let okrView = 'cards';
 
@@ -1850,7 +1956,7 @@ function defaultKPIs(){return[
 ];}
 
 function loadKPIs(){try{return JSON.parse(localStorage.kpi_data)||defaultKPIs()}catch(e){return defaultKPIs()}}
-function saveKPIs(d){try{localStorage.kpi_data=JSON.stringify(d)}catch(e){alert('存储空间不足，请清理旧数据后重试。\n错误：'+e.message);throw e}}
+function saveKPIs(d){try{localStorage.kpi_data=JSON.stringify(d);debouncedSyncToServer();}catch(e){alert('存储空间不足，请清理旧数据后重试。\n错误：'+e.message);throw e}}
 let kpis = loadKPIs();
 
 // ===== IndexedDB File Store =====
@@ -1903,7 +2009,7 @@ function defaultReports(){return[
   {id:'r12',name:'Closes版合并的P&L表（开弈投资系）',desc:'向工作会议提交开弈投资系年度Closes版合并P&L',freq:'yearly',deadlineDay:15,deadlineMonth:1,owner:'芦智蔚',companies:'开弈投资系',subs:{}}
 ];}
 function loadReports(){try{if(localStorage.rpt_version!=='6')return defaultReports();try{return JSON.parse(localStorage.rpt_data)||defaultReports()}catch(e){return defaultReports()}}catch(e){return defaultReports()}}
-function saveReports(d){try{localStorage.rpt_data=JSON.stringify(d);localStorage.rpt_version='6'}catch(e){alert('存储空间不足，请清理旧数据后重试。\n错误：'+e.message);throw e}}
+function saveReports(d){try{localStorage.rpt_data=JSON.stringify(d);localStorage.rpt_version='6';debouncedSyncToServer();}catch(e){alert('存储空间不足，请清理旧数据后重试。\n错误：'+e.message);throw e}}
 let reports = loadReports();
 let rptView = 'monthly';
 
@@ -2240,7 +2346,7 @@ async function deleteFile(rptId,key,fileIndex){
 
 // ===== Group File Upload / Download =====
 function loadGroupSubs(){try{return JSON.parse(localStorage.rpt_group_subs)||{}}catch(e){return{}}}
-function saveGroupSubs(d){try{localStorage.rpt_group_subs=JSON.stringify(d)}catch(e){}}
+function saveGroupSubs(d){try{localStorage.rpt_group_subs=JSON.stringify(d);debouncedSyncToServer();}catch(e){}}
 function getGroupSub(groupName,key){
   const gs=loadGroupSubs();
   return gs[key]||null;
@@ -3324,7 +3430,7 @@ function defaultMeetings(){return[
   {id:'m2',date:'2026-06-13',title:'六月第二周周例会',attendees:'杜宪,汪顺,王倩,邵吴慧,黄欢欢',minutes:'1. 大后台服务SOP框架评审\n2. 薪酬绩效KPI政策初稿讨论\n3. 人事档案数字化方案确认\n4. 集团资产管理系统选型汇报',tempTasks:[{id:'mt3',title:'完成SOP框架修订版',owner:'杜宪',deadline:'2026-06-18',status:'done'},{id:'mt4',title:'资产管理系统供应商报价收集',owner:'汪顺',deadline:'2026-06-20',status:'pending'}],files:[],cat:Date.now()}
 ];}
 function loadMeetings(){try{return JSON.parse(localStorage.meeting_data)||defaultMeetings()}catch(e){return defaultMeetings()}}
-function saveMeetings(d){try{localStorage.meeting_data=JSON.stringify(d)}catch(e){alert('存储空间不足，请清理旧数据后重试。\n错误：'+e.message);throw e}}
+function saveMeetings(d){try{localStorage.meeting_data=JSON.stringify(d);debouncedSyncToServer();}catch(e){alert('存储空间不足，请清理旧数据后重试。\n错误：'+e.message);throw e}}
 let meetings = loadMeetings();
 
 // ===== Meeting Render =====
@@ -4817,9 +4923,9 @@ function renderGrowthView() {
 // ===== Org Management =====
 // --- Employee data layer ---
 function loadEmployees(){ try{ return JSON.parse(localStorage.okr_employees)||[] }catch(e){return[]} }
-function saveEmployees(d){ try{ localStorage.okr_employees=JSON.stringify(d) }catch(e){} }
+function saveEmployees(d){ try{ localStorage.okr_employees=JSON.stringify(d);debouncedSyncToServer(); }catch(e){} }
 function loadDepts(){ try{ return JSON.parse(localStorage.okr_depts)||[] }catch(e){return[]} }
-function saveDepts(d){ try{ localStorage.okr_depts=JSON.stringify(d) }catch(e){} }
+function saveDepts(d){ try{ localStorage.okr_depts=JSON.stringify(d);debouncedSyncToServer(); }catch(e){} }
 
 let empList = loadEmployees();
 let deptList = loadDepts();
@@ -5259,7 +5365,7 @@ function getTodayStr() { const d=new Date(); return d.getFullYear()+'-'+String(d
 function loadAttendance() {
   try { return JSON.parse(localStorage.getItem('okr_attendance')||'{}'); } catch(e) { return {}; }
 }
-function saveAttendance(data) { localStorage.setItem('okr_attendance',JSON.stringify(data)); }
+function saveAttendance(data) { localStorage.setItem('okr_attendance',JSON.stringify(data));debouncedSyncToServer(); }
 
 function renderAttendView() {
   const div = document.getElementById('orgAttendView');
